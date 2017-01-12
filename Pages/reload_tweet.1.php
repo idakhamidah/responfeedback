@@ -39,13 +39,12 @@
     //echo $text_tweet;
     //exit;
 
+
     //cek ada tweet gak
     if(isset($id_tweet)){
-      d($id_tweet);
-      $sql = mysql_query("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon IS NULL "); 
+      $sql = mysql_query("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon='0' "); 
       $cek_tweet = mysql_num_rows($sql);
-      d("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon='NULL' ");
-      d($cek_tweet);
+
       //jika tidak ada tweet baru maka akan muncul alert info
       if($cek_tweet<1) {
         echo "<div class='alert alert-info' style='margin-top: 35px;'>Belum ada tweet baru</div>";
@@ -234,27 +233,12 @@
                     
       $N = mysql_num_rows($sqllatih);
 
-      //load tf, idf, tfidfp training
-      $sql_tfidf = mysql_query("select * from rocchio_tfidf");
-      $TF = array();
-      $IDF = array();
-      $TFIDF = array();
       $semua_kata = array();
-      while($tfidf_data = mysql_fetch_array($sql_tfidf)){
-        $TF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']]  = $tfidf_data['tf'];
-        $IDF[$tfidf_data['kata']]= $tfidf_data['idf'];
-        $TFIDF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']] 
-          = $tfidf_data['tf_idf']; 
-
-        if(!array_key_exists($tfidf_data['kata'], $semua_kata)) $semua_kata[$tfidf_data['kata']] = array();
-      }
-
-      // $semua_kata = array();
       foreach ($kata_d['kata'] as $v1) {
           if(!array_key_exists($v1, $semua_kata)) $semua_kata[$v1] = array();
       }
       //semua kata
-      // $TF = array();
+      $TF = array();
       // ddd($semua_kata);
       // yang lama
       // foreach($semua_kata as $key=>$val){
@@ -269,8 +253,6 @@
       //     }
       // } 
       // yang baru
-
-      // Hitung TF
       foreach($semua_kata as $key=>$val){
          //load semua dokumen
         $i=$N+1; 
@@ -282,26 +264,15 @@
         }  
       }
 
-      // Hitung IDF
-      // foreach($TF as $index1=>$tf){
-      //    $df=0;
-      //     foreach($tf as $ft2){
-      //        if($ft2 >0 ) $df++;
-      //     }
-      //    $IDF[$index1] = log10($N/$df) ; 
-      // }
+      
       foreach($TF as $index1=>$tf){
          $df=0;
-         foreach($tf as $idx=>$ft1){
-            if($idx != 'kelas_uji'){
-              foreach($ft1 as $ft2){
-                 if($ft2 > 0 ) $df++;
-              }
-            }
-         }
-         $IDF[$index1] = log10(@($N/$df)) ; 
+          foreach($tf as $ft2){
+             if($ft2 >0 ) $df++;
+          }
+         $IDF[$index1] = log10($N/$df) ; 
       }
-      // $TFIDF = array();
+      $TFIDF = array();
       $Panjang_Vektor = array();
       
       // yang asli
@@ -349,7 +320,7 @@
          $Normalisasi_TFIDF[$key]['kelas_uji'][$i] 
           = $TFIDF[$key]['kelas_uji'][$i] / $Panjang_Vektor[$i]; 
       }
-      // ddd($Normalisasi_TFIDF);
+      ddd($Normalisasi_TFIDF);
       
       // $sql_centroid = mysql_query("select * from rocchio_centroid");
       // $CUuji = array(1=>0,0);

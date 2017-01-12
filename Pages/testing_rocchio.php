@@ -1,7 +1,7 @@
 <?php require_once "Lib/kint/Kint.class.php"; ?>
 <h3><i class="fa fa-angle-right"></i> Testing Rocchio</h3>
 <div class="row">
- <div class="col-md-12">
+ <div class="col-sm-12">
     <div class="showback">
       <h4><i class="fa fa-angle-right"></i> Data Tweet</h4>
       <form action="" method="post">
@@ -10,6 +10,7 @@
           <tr>
               <th>No</th>
               <th>Tweet</th>
+              <th>Tweet Bersih</th>
               <th>Label manual</th>
               <th>Label Sistem</th>
           </tr>
@@ -17,13 +18,12 @@
           <tbody>
             <?php 
               $sql = mysql_query("select 
-                        tb.id id_tweet_bersih, tb.tweet, tr.label,tr.label_sistem,
-                        tn.id id_tweet_nbc
-                    from tweet_bersih tb
-                    left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                    left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                    where tb.status_data='testing' and tn.label='2'
-                     ");
+                                t1.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc, tr.label_sistem
+                                from tweets t1 left join tweet_bersih tb on t1.id=tb.id_tweet
+                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
+                                left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
+                                where tb.status_data='testing' and tn.label='2'
+                                ");
             // $sql = mysql_query("SELECT tb.id, tb.tweet, tn.id id_tweet_nbc 
             //                     FROM tweet_bersih tb, tweet_nbc tn 
             //                     WHERE status_data='testing' 
@@ -37,6 +37,10 @@
               while($d = mysql_fetch_array($sql)){
                 echo "<tr>
                         <td>$no</td>
+                        <td>$d[tweet_kotor]
+                          <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
+                          <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                        </td>
                         <td>$d[tweet]
                           <input type='hidden' name='tweet[]' value='$d[tweet]' />
                           <input type='hidden' name='id_tweet_nbc[]' value='$d[id_tweet_nbc]' />
@@ -63,7 +67,7 @@
       <input type="submit" name="btnTesting" class="btn btn_primary" value="Testing" />
       </form>
     </div><!--/content-panel -->
-  </div><!-- /col-md-12 -->
+  </div><!-- /col-sm-12 -->
 </div>
 
 
@@ -75,12 +79,13 @@
 
 
       $sqllatih = mysql_query("select 
-                        tb.id id_tweet_bersih, tb.tweet, tr.label,
-                        tn.id id_tweet_nbc
-                    from tweet_bersih tb
-                    left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                    join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                    where tb.status_data='training' and tn.label='2'");
+                                tb.id id_tweet_bersih, tb.tweet, tr.label,
+                                tn.id id_tweet_nbc
+                                from tweet_bersih tb
+                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
+                                join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
+                                where tb.status_data='training' and tn.label='2'"
+                              );
       $N = mysql_num_rows($sqllatih);
 
       //load tf, idf, tfidfp training
@@ -113,6 +118,9 @@
              set label='".$label."' where id_tweet_nbc='$id_tweet_nbc' ");
         }
 
+        echo "<br>";
+        echo "Data testing = "; print_r ($post);  
+
         $kata_d['kata'] = explode(' ',strtolower($post));
         $kata_d['kelas'] = $label;
         $kata_d['id_tweet_nbc'] = $id_tweet_nbc;
@@ -130,13 +138,10 @@
 
       } 
       $akurasi = @ ( ($benar / count($_POST['tweet'])) * 100 ); 
-      echo "<div class='row'>
-            <div class='col-md-12'>
-              <div class='showback'>
+      echo "<div class='alert alert-info'>
                 <b>Akurasi Rocchio $akurasi %</b>
-              </div>
-            </div>
-          </div>";
+
+            </div>";
   }
   
   function klasifikasi_rocchio($kata_d=array(),$N, $semua_kata, $TF, $IDF, $TFIDF){  
@@ -145,15 +150,16 @@
       }
 
       //Perhitungan TF
+      
       foreach($semua_kata as $key=>$val){
          //load semua dokumen
-         $i=$N+1; 
-         $TF[$key]['kelas_uji'][$i]=0;
-         foreach($kata_d['kata'] as $k){
-            if($key==$k){
-               $TF[$key]['kelas_uji'][$i] ++; 
-            }
-         }  
+        $i=$N+1; 
+        $TF[$key]['kelas_uji'][$i]=0;
+        foreach($kata_d['kata'] as $k){
+          if($key==$k){
+              $TF[$key]['kelas_uji'][$i] ++; 
+          }
+        }  
       }
 
       //Perhitungan IDF
@@ -167,7 +173,7 @@
               }
             }
          }
-         $IDF[$index1] = log10($N/$df) ; 
+         $IDF[$index1] = log10(@($N/$df)) ; 
       }
 
       foreach($semua_kata as $key=>$val){
@@ -190,6 +196,8 @@
          $Normalisasi_TFIDF[$key]['kelas_uji'][$i] 
           = $TFIDF[$key]['kelas_uji'][$i] / $Panjang_Vektor[$i]; 
       }
+
+      // ddd($Normalisasi_TFIDF); 
        
       $sql_centroid = mysql_query("select * from rocchio_centroid");
       $CUuji = array(1=>0,0);
@@ -221,7 +229,14 @@
       //       $kata_normal_uji[$kata] = $ntf;
       //     }
       // }
-      print_r($CUuji);
+      
+      
+      echo "<br>";
+      echo "Nilai Jarak Dokumen dengan centroid keluhan umum adalah = "; print_r($CUuji[1]); 
+      echo "<br>";
+      echo "Nilai Jarak Dokumen dengan centroid keluhan sopir adalah = "; print_r($CUuji[2]);
+      echo "<br><br>";
+
       if($CUuji[1] < $CUuji[2]){
         return 1;
       }

@@ -44,6 +44,8 @@
                               $cek_data = mysql_num_rows($s); //apakah sudah pernah disimpan
                               if($cek_data <1 ) { //kalo kurang dari 1, brrti blm pernah disimpan
                                 mysql_query("insert into tweet_bersih values ('','$pre','training','$d[id]')");
+                              }else{
+                                mysql_query("update tweet_bersih set tweet='".$pre."' where id_tweet='$d[id]'");
                               }
                             } 
                           }else{

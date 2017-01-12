@@ -53,8 +53,7 @@
 
 <?php 
 
-  if(isset($_POST['btnSubmit'])){
-    
+  if(isset($_POST['btnSubmit'])){    
       $status_data = $_POST['status_data'];
       foreach($_POST['id'] as $i=>$id){
          mysql_query("update tweet_bersih set status_data='$status_data[$i]' 

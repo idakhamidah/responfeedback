@@ -1,70 +1,75 @@
 <h3><i class="fa fa-angle-right"></i> Training Rocchio</h3>
 <div class="row">
- <div class="col-md-12">
-      <div class="showback">
-        <form action="" method='post'>
-          <h4><i class="fa fa-angle-right"></i> Data Training</h4>
-          <table id="tabel1" class="display" cellspacing="0" width="100%" >
-              <thead>
-              <tr>
-                  <th>No</th>
-                  <th>Tweet</th>
-                  <th>Label</th>
-              </tr>
-              </thead>
-              <tbody>
-              <?php
+  <div class="col-md-12">
+    <div class="showback">
+      <form action="" method='post'>
+        <h4><i class="fa fa-angle-right"></i> Data Training</h4>
+        <table id="tabel1" class="display" cellspacing="0" width="100%" >
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tweet</th>
+              <th>Tweet Bersih</th>
+              <th>Label</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php
 
-                /*
-                  menampilkan tweet hasil join tabel tweet bersih 
-                    dan tweet_nbc yg statusnya berlabel 2 / keluhan
-                */
-                $sql = mysql_query("select 
-                        tb.id id_tweet_bersih, tb.tweet, tr.label,
-                        tn.id id_tweet_nbc
-                    from tweet_bersih tb
-                    left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                    left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                    where tb.status_data='training' and tn.label='2'
-                     ");
-                $no=1;
-                $kelas = array(1=>"Keluhan Umum",2=> "Keluhan Sopir");
-                while($d = mysql_fetch_array($sql)){
-                  echo "<tr>
-                          <td>$no</td>
-                          <td>$d[tweet]
-                            <input type='hidden' name='tweet[]' value='$d[tweet]' />
-                            <input type='hidden' name='id_tweet_nbc[]' value='$d[id_tweet_nbc]' />
-                          </td>
-                          <td>
-                            <select name='label[]'>";
-                            $dr_db =false;
-                            foreach ($kelas as $i=>$k){
-                                if($i==$d['label']){
-                                  $dr_db = true;
-                                  echo "<option selected value='$i'>$kelas[$i]</option>";
-                                }else{
-                                  if($i==2 && $dr_db==false)
-                                    echo "<option selected value='$i'>$kelas[$i]</option>";
-                                  else
-                                    echo "<option value='$i'>$kelas[$i]</option>";
-                                } 
-                            }
-                            echo "
-                            </select>
-                          </td>
-                         </tr>";
-                  $no++;
-                }
-              ?>
-              </tbody>
-          </table>
-          <br>
-          <input type="submit" name="btnTraining" class="btn btn_primary" value="Training" />
-       </form> 
-      </div>
-  </div>
-</div>
+            /*
+              menampilkan tweet hasil join tabel tweet bersih 
+                dan tweet_nbc yg statusnya berlabel 2 / keluhan
+            */
+            $sql = mysql_query("select 
+                                t1.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc
+                                from tweets t1 left join tweet_bersih tb on t1.id=tb.id_tweet
+                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
+                                left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
+                                where tb.status_data='training' and tn.label='2'
+                              ");
+
+            $no=1;
+            $kelas = array(1=>"Keluhan Umum",2=> "Keluhan Sopir");
+            while($d = mysql_fetch_array($sql)){
+              echo "<tr>
+                      <td>$no</td>
+                      <td>$d[tweet_kotor]
+                        <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
+                        <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                      </td>
+                      <td>$d[tweet]
+                        <input type='hidden' name='tweet[]' value='$d[tweet]' />
+                        <input type='hidden' name='id_tweet_nbc[]' value='$d[id_tweet_nbc]' />
+                      </td>
+                      <td>
+                        <select name='label[]'>";
+                        $dr_db =false;
+                        foreach ($kelas as $i=>$k){
+                            if($i==$d['label']){
+                              $dr_db = true;
+                              echo "<option selected value='$i'>$kelas[$i]</option>";
+                            }else{
+                              if($i==2 && $dr_db==false)
+                                echo "<option selected value='$i'>$kelas[$i]</option>";
+                              else
+                                echo "<option value='$i'>$kelas[$i]</option>";
+                            } 
+                        }
+                        echo "
+                        </select>
+                      </td>
+                      </tr>";
+              $no++;
+            }
+          ?>
+          </tbody>
+        </table>
+        <br>
+        <input type="submit" name="btnTraining" class="btn btn_primary" value="Training" />
+      </form> 
+    </div><!--/showback-->
+  </div><!--/col-md-12-->
+</div><!--/row-->
 
 
 
@@ -107,12 +112,36 @@
         if(isset($jml_document_c[$dd['label']])) $jml_document_c[$dd['label']] ++;
     }
 
+    // kata_d = [
+    //   {
+    //     kata: ['sopir','ramah'],
+    //     kelas: 1
+    //   },
+    //   {
+    //     kata: ['sopir','ngebut'],
+    //     kelas: 2
+    //   },
+    //   .
+    //   .
+    //   {}
+    // ]
+
     $semua_kata = array();    
     foreach ($kata_d as $v) {
       foreach($v['kata'] as $v1){
         if(!array_key_exists($v1, $semua_kata)) $semua_kata[$v1] = array(); //menampung semua kata yang ada pada seluruh tweet. kata yang sama tidak ditampung lagi. 
       }
     }
+
+    // semua_kata = [];
+    // !semua_kata['sopir'] || semua_kata['sopir'] = []
+    //  |
+    //  v
+    // semua_kata = {
+    //   sopir: [],
+    //   ramah: [],
+    //   ngebut: []
+    // }
 
 
     //Perhitungan TF
@@ -129,6 +158,18 @@
       $i++;    
       }
     }
+
+    // TF = []
+    // TF[sopir][1][1] = 0, sopir == $key,
+    // klo sama -> TF['sopir'][1][1] = 1; karena ++
+    // TF = {
+    //   sopir: {
+    //     1: [1,3,0] <-- jumlah kemunculan kata sopir di tiap tweet, panjang array sebanyak jumlah tweet
+    //     2: [1,1]
+    //   },
+    //   ramah,
+    //   ngebut
+    // }
     
     //Perhitungan IDF
     $N = count($d);//jumlah all dokumen
@@ -253,43 +294,41 @@
       ?>
 
 <div class="row">
- <div class="col-md-12">
-      <div class="showback">
-        <form action="" method='post'>
-          <h4><i class="fa fa-angle-right"></i> Centroid Kelas</h4>
-          <table id="tabel1" class="display" cellspacing="0" width="100%" >
-              <thead>
-              <tr>
-                  <th>No</th>
-                  <th>Kata</th>
-                  <th>Keluhan Umum</th>
-                  <th>Keluhan Sopir</th>
-              </tr>
-              </thead>
-              <tbody>
-              <?php
+  <div class="col-md-6">
+    <div class="showback">
+      <form action="" method='post'>
+        <h4><i class="fa fa-angle-right"></i> Centroid Kelas</h4>
+        <table id="tabel1" class="display" cellspacing="0" width="100%" >
+          <thead>
+          <tr>
+            <th>No</th>
+            <th>Kata</th>
+            <th>Keluhan Umum</th>
+            <th>Keluhan Sopir</th>
+          </tr>
+          </thead>
+          <tbody>
+            <?php
 
-                $sqlcentroid = mysql_query("select * from rocchio_centroid");
-                $no=1;
-                while($dcentroid = mysql_fetch_array($sqlcentroid)){
-                  echo "<tr>
-                          <td>$no</td>
-                          <td>$dcentroid[kata]</td>
-                          <td>$dcentroid[cUmum]</td>
-                          <td>$dcentroid[cSopir]</td>
-                        </tr>";
-                  $no++;
-                }
-              
-              ?>
-              </tbody>
-          </table>
-          <br>
-       </form> 
-      </div>
-  </div>
-</div>
-
+              $sqlcentroid = mysql_query("select * from rocchio_centroid");
+              $no=1;
+              while($dcentroid = mysql_fetch_array($sqlcentroid)){
+                echo "<tr>
+                        <td>$no</td>
+                        <td>$dcentroid[kata]</td>
+                        <td>$dcentroid[cUmum]</td>
+                        <td>$dcentroid[cSopir]</td>
+                      </tr>";
+                $no++;
+              }            
+            ?>
+          </tbody>
+        </table>
+        <br>
+      </form> 
+    </div><!--/showback-->
+  </div><!--/col-md-12-->
+</div><!--/row-->
       <?php
 
   }

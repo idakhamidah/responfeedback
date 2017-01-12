@@ -51,11 +51,13 @@ require_once('Pages/TwitterAPIExchange.php');
 <?php if($tweet_baru < 1): ?>
   <div class="alert alert-info">Belum ada tweet baru.</div>
 <?php endif; ?>
-<h3><i class="fa fa-angle-right"></i> Tweet baru</h3>
+
+<h3><i class="fa fa-angle-right"></i> Feedback Tweet</h3>
 <div class="row">
-  <div class="col-md-12 mt">
-    <div class="content-panel">
-          <table table id="tabel_paging" class="display" cellspacing="0" width="100%" border="0">
+  <div class="col-md-12\"><!--<div class="col-md-12 mt">-->
+    <!--<div class="content-panel">-->
+    <div class="showback">
+          <table table id="tabel1_search" class="ui celled table" cellspacing="0" width="100%" border="0">
           <h4><i class="fa fa-angle-right"></i> Tweet baru</h4>
           <hr>
               <thead>

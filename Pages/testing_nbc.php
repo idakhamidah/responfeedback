@@ -1,7 +1,7 @@
-<?php require "./lib/kint/Kint.class.php"; ?>
+<?php require "Lib/kint/Kint.class.php"; ?>
 <h3><i class="fa fa-angle-right"></i> Testing NBC</h3>
 <div class="row">
- <div class="col-md-12">
+ <div class="col-sm-12">
     <div class="showback">
       <h4><i class="fa fa-angle-right"></i> Testing NBC</h4>
       <form action="" method="post">
@@ -10,6 +10,7 @@
             <tr>
                 <th>No</th>
                 <th>Tweet</th>
+                <th>Tweet Bersih</th>
                 <th>Label manual</th>
                 <th>Label Sistem</th>
             </tr>
@@ -17,16 +18,21 @@
             <tbody>
               <?php
               $sql = mysql_query("select 
-                      tb.id id_tweet_bersih, tb.tweet, tn.label, tn.label_sistem
-                  from tweet_bersih tb
-                  left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-               where tb.status_data='testing'");
+                                  t.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tn.label, tn.label_sistem
+                                  from tweets t left join tweet_bersih tb on t.id=tb.id_tweet
+                                  left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
+                                  where tb.status_data='testing'"
+                                );
               $no=1;
               $tweets = array();
               $kelas = array("1"=>"Pujian", "2"=>"Keluhan", "3"=>"Follow", "4"=>"Unknown");
               while($d = mysql_fetch_array($sql)){
                 echo "<tr>
                         <td>$no</td>
+                        <td>$d[tweet_kotor]
+                          <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
+                          <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                        </td>
                         <td>$d[tweet]
                           <input type='hidden' name='id_tweet_bersih[]' value='$d[id_tweet_bersih]' />
                           <input type='hidden' name='tweet[]' value='$d[tweet]' />
@@ -109,7 +115,7 @@
         <?php
         $klasifikasi = array("1"=>"pujian","2"=>"keluhan","3"=>"follow","4"=>"unknown");
              
-          $sql_prior = mysql_query("select * from nbc_classpriors");
+          $sql_prior = mysql_query("select * from nbc_priorclass");
              $prior = array();
              while($dprior = mysql_fetch_array($sql_prior)){
                 $prior[$dprior['class']] = $dprior['prior'];
@@ -117,17 +123,17 @@
             $no=1;
             $benar = 0;
             
-            // ddd($prior[0]);
+            //ddd($prior[2]);
             // [1: pujian, 2: keluhan, 3: follow, 4: unknown]
             foreach($alldata_testing as $i=>$data_testing) {
+                $score[$i]=array(1=>$prior[1], // pujian
+                                 2=>$prior[2], // pujian
+                                 3=>$prior[3], // follow
+                                 4=>$prior[4]); // keluhan
                 // $score[$i]=array(1=>$prior[3]['prior'], // unknown
                 //                  2=>$prior[0]['prior'], // pujian
                 //                  3=>$prior[1]['prior'], // follow
                 //                  4=>$prior[2]['prior']); // keluhan
-                $score[$i]=array(1=>$prior[1], // unknown
-                                 2=>$prior[2], // pujian
-                                 3=>$prior[3], // follow
-                                 4=>$prior[4]); // keluhan
                 $score[$i]['text'] = $data_testing['text'];
                 // print_r($data_testing['text']);
                 echo "Data test : ";
@@ -145,16 +151,16 @@
                         $no++;
                       }
                     }
-                }
-                // ddd($prior[3]['prior']);
+                  }
+                  
                   echo "<br> Probabilitas Posterior kelas Pujian = ";
-                  print (number_format($score[$i][1],14,",","."));
+                  print (number_format($score[$i][1],25,",","."));
                   echo "<br> Probabilitas Posterior kelas Keluhan = ";
-                  print (number_format($score[$i][2],14,",","."));
+                  print (number_format($score[$i][2],25,",","."));
                   echo "<br> Probabilitas Posterior kelas Follow = ";
-                  print (number_format($score[$i][3],14,",","."));
+                  print (number_format($score[$i][3],25,",","."));
                   echo "<br> Probabilitas Posterior kelas Unknown = ";
-                  print (number_format($score[$i][4],14,",","."));
+                  print (number_format($score[$i][4],25,",","."));
                   echo "<br>";
 
                   $max = $score[$i][1];
@@ -183,7 +189,7 @@
       <?php
 
       $total_data_testing = count($alldata_testing);
-      echo "Akurasi = ". (( $benar / $total_data_testing) * 100 ) . "%"; 
+      echo "<div class='alert alert-info'>Akurasi = ". (( $benar / $total_data_testing) * 100 ) . "%</div>"; 
       
   }
 ?>
