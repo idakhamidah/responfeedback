@@ -20,7 +20,7 @@
         //3. Buang tanda baca (. , ! " ? #)
         $text = omitCharacters($text, null);
 
-        //5. Casefolding (mengubah menjadi lowercase atau huruf kecil)
+        //5. Casefolding (transformasi teks menjadi lowercase atau huruf kecil)
         $text = strtolower($text);
 
         // Replacement kata baku
@@ -44,7 +44,7 @@
         $text = array_filter($text); //hapus array yg bernilai kosong
 
         //$text = array_filter($text, 'is_string') + array_values($text);
-        $text = filter_angka($text);//hapus kata yg mengandung lemak/angka
+        $text = filter_angka($text);//hapus kata yg mengandung angka
         //hapus kata yg jml hurufnya 1 atau 2
         $text = hapus_huruf($text);
         
@@ -130,8 +130,10 @@
   function wordReplacement($text=array()){
     foreach ($text as $k=>$v) {
       $v =  mysql_escape_string($v); //omitCharacters($v, null);
-      $sql = mysql_query("select kata,vocab_id,katadasar from replace_words
-         join vocabs on vocabs.id = vocab_id where kata='$v'");
+      $sql = mysql_query("select rw.word, rw.vocab_id, v.word katadasar
+                          from replace_words rw join vocabs v on v.id = rw.vocab_id  
+                          where rw.word='$v'"
+                        );
       $d = mysql_fetch_array($sql); 
       if(mysql_num_rows($sql)>0) $text[$k] = $d['katadasar'];
     }

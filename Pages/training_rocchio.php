@@ -9,8 +9,8 @@
             <tr>
               <th>No</th>
               <th>Tweet</th>
-              <th>Tweet Bersih</th>
-              <th>Label</th>
+              <th>Clean Tweet</th>
+              <th>Class</th>
             </tr>
           </thead>
           <tbody>
@@ -20,12 +20,11 @@
               menampilkan tweet hasil join tabel tweet bersih 
                 dan tweet_nbc yg statusnya berlabel 2 / keluhan
             */
-            $sql = mysql_query("select 
-                                t1.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc
-                                from tweets t1 left join tweet_bersih tb on t1.id=tb.id_tweet
-                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                                left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                                where tb.status_data='training' and tn.label='2'
+            $sql = mysql_query("select t1.tweet tweet_kotor, t1.id id_tweet_kotor, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc
+                                from tweets t1 left join clean_tweet tb on t1.id=tb.id
+                                left join tweet_nbc tn on tb.id=tn.id
+                                left join tweet_rocchio tr on tn.id=tr.id
+                                where tb.data_status='training' and tn.label='2'
                               ");
 
             $no=1;
@@ -35,7 +34,7 @@
                       <td>$no</td>
                       <td>$d[tweet_kotor]
                         <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
-                        <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                        <input type='hidden' name='id_tweet_kotor[]' value='$d[id_tweet_kotor]' />
                       </td>
                       <td>$d[tweet]
                         <input type='hidden' name='tweet[]' value='$d[tweet]' />
@@ -65,7 +64,7 @@
           </tbody>
         </table>
         <br>
-        <input type="submit" name="btnTraining" class="btn btn_primary" value="Training" />
+        <input type="submit" name="btnTraining" class="btn btn-theme" value="Training" />
       </form> 
     </div><!--/showback-->
   </div><!--/col-md-12-->
@@ -84,12 +83,12 @@
       $label = $_POST['label'][$i];
       // cek ditabel rocchio ada ga id nya
       $sql_k = mysql_query("select * from tweet_rocchio 
-          where id_tweet_nbc='$id_tweet_nbc'");
+                            where id_tweet_nbc='$id_tweet_nbc'");
       $hitung_jml_data = mysql_num_rows($sql_k);
-      // ko ga ada input ke tabel tweet_rocchio
+      // klo ga ada input ke tabel tweet_rocchio
       if($hitung_jml_data < 1){
         mysql_query("insert into tweet_rocchio
-           values ('','".$id_tweet_nbc."','".$label."','')");
+                    values ('".$id_tweet_nbc."','".$label."','')");
         $sql_k = mysql_query("select max(id) maxid from tweet_rocchio");
         // $dt = mysql_fetch_array($sql_k); 
       }else{
@@ -106,7 +105,7 @@
 
     $kata_d=array();
     foreach($d as $k=>$dd){
-        $kata_d[$k]['kata'] = explode(' ',strtolower($dd['tweet']));
+        $kata_d[$k]['word'] = explode(' ',strtolower($dd['tweet']));
         //$kata_d[$k]['kata']->kata pada dokumen ke k
         $kata_d[$k]['kelas'] = $dd['label'];
         if(isset($jml_document_c[$dd['label']])) $jml_document_c[$dd['label']] ++;
@@ -128,7 +127,7 @@
 
     $semua_kata = array();    
     foreach ($kata_d as $v) {
-      foreach($v['kata'] as $v1){
+      foreach($v['word'] as $v1){
         if(!array_key_exists($v1, $semua_kata)) $semua_kata[$v1] = array(); //menampung semua kata yang ada pada seluruh tweet. kata yang sama tidak ditampung lagi. 
       }
     }
@@ -150,7 +149,7 @@
       $i=1;
       foreach ($kata_d as $value1) {
         $TF[$key][$value1['kelas']][$i]=0;
-        foreach($value1['kata'] as $k){
+        foreach($value1['word'] as $k){
           if($key==$k){
             $TF[$key][$value1['kelas']][$i] ++; 
           }
@@ -183,12 +182,15 @@
        $IDF[$index1] = log10($N/$df) ; 
     }
 
+    // $IDF = {
+    //   sopir: ?,
+    //   ramah: ?
+    // }
+
 
     $TFIDF=array();
     $Panjang_Vektor=array();
-    /*echo "<pre>";
-    print_r($semua_kata);
-    exit();*/
+    
     foreach($semua_kata as $key=>$val){
         $i=1;
         foreach ($kata_d as $value1) {
@@ -201,16 +203,12 @@
            $i++;    
         }
     }
-    // echo "<pre>";
-    // print_r($TF);
-    // print_r($IDF);
-    // print_r($TFIDF);
+
     // tfidf^2    
     foreach ($Panjang_Vektor as $key1=>$pv) {
        $Panjang_Vektor[$key1] = sqrt($pv);
     }
-    /*echo "<pre>";
-    print_r($Panjang_Vektor);*/
+
 
     $Normalisasi_TFIDF = array();
     foreach($semua_kata as $key=>$val){
@@ -224,12 +222,12 @@
  
     $Centroid = array();
     $Kelas = array(1,2);
-    //memanggil kelas yg isinya 1 dan 2.
+    
     // echo "<pre>";
     // print_r($kata_d );
     // print_r($Normalisasi_TFIDF );
     // exit;
-
+    //memanggil kelas yg isinya 1 dan 2.
     foreach($Kelas as $c){ 
       //mengambil nilai tfidf yg sudah dinormalisasi berdasarkan kata di setiap kelas pada document
       foreach ($Normalisasi_TFIDF as $kata => $kelas) {
@@ -288,7 +286,7 @@
       //hapus data di tabel centroid 
       mysql_query("TRUNCATE `rocchio_centroid`");
       foreach($Centroid[1] as $kata=>$c1){
-        mysql_query("insert into rocchio_centroid (kata,cUmum,cSopir) values ('$kata','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
+        mysql_query("insert into rocchio_centroid (word,cUmum,cSopir) values ('$kata','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
       }
 
       ?>
@@ -315,7 +313,7 @@
               while($dcentroid = mysql_fetch_array($sqlcentroid)){
                 echo "<tr>
                         <td>$no</td>
-                        <td>$dcentroid[kata]</td>
+                        <td>$dcentroid[word]</td>
                         <td>$dcentroid[cUmum]</td>
                         <td>$dcentroid[cSopir]</td>
                       </tr>";

@@ -1,27 +1,26 @@
 <?php require "Lib/kint/Kint.class.php"; ?>
-<h3><i class="fa fa-angle-right"></i> Testing NBC</h3>
+<!--<h3><i class="fa fa-angle-right"></i> Testing NBC</h3>-->
 <div class="row">
  <div class="col-sm-12">
     <div class="showback">
-      <h4><i class="fa fa-angle-right"></i> Testing NBC</h4>
+      <h4><i class="fa fa-angle-right"></i> Testing Naive Bayes Classifier</h4>
       <form action="" method="post">
         <table id="tabel1" class="display" cellspacing="0" width="100%" >
             <thead>
             <tr>
                 <th>No</th>
                 <th>Tweet</th>
-                <th>Tweet Bersih</th>
-                <th>Label manual</th>
-                <th>Label Sistem</th>
+                <th>Clean Tweet</th>
+                <th>Class</th>
+                <th>Class (System)</th>
             </tr>
             </thead>
             <tbody>
               <?php
-              $sql = mysql_query("select 
-                                  t.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tn.label, tn.label_sistem
-                                  from tweets t left join tweet_bersih tb on t.id=tb.id_tweet
-                                  left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                                  where tb.status_data='testing'"
+              $sql = mysql_query("select t.tweet tweet_kotor, tb.id id_tweet_kotor, tb.id id_tweet_bersih, tb.tweet, tn.label, tn.label_system
+                                  from tweets t left join clean_tweet tb on t.id=tb.id
+                                  left join tweet_nbc tn on tb.id=tn.id
+                                  where tb.data_status='testing'"
                                 );
               $no=1;
               $tweets = array();
@@ -31,7 +30,7 @@
                         <td>$no</td>
                         <td>$d[tweet_kotor]
                           <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
-                          <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                          <input type='hidden' name='id_tweet_kotor[]' value='$d[id_tweet_kotor]' />
                         </td>
                         <td>$d[tweet]
                           <input type='hidden' name='id_tweet_bersih[]' value='$d[id_tweet_bersih]' />
@@ -51,15 +50,15 @@
                           echo "
                           </select>
                         </td>
-                        <td>".(($d['label_sistem']) ? $kelas[$d['label_sistem']] : '')."</td>
+                        <td>".(($d['label_system']) ? $kelas[$d['label_system']] : '')."</td>
                       </tr>";
                       $tweets[]=$d;
                 $no++;
               }
               ?>
               </tbody>
-          </table>
-      <input type="submit" name="btnTesting" class="btn btn_primary" value="Testing" />
+          </table><br>  
+      <input type="submit" name="btnTesting" class="btn btn-theme" value="Testing" />
       </form>
     </div><!--/content-panel -->
   </div><!-- /col-md-12 -->
@@ -72,18 +71,29 @@
       foreach($_POST['tweet'] as $i=>$post) { 
           $id_tweet_bersih = $_POST['id_tweet_bersih'][$i];
           $label = $_POST['label'][$i];
-          $sql_k = mysql_query("select * from tweet_nbc where id_tweet_bersih='$id_tweet_bersih'");
+          $sql_k = mysql_query("select * from tweet_nbc where id='$id_tweet_bersih'");
           $hitung_jml_data = mysql_num_rows($sql_k);
           //kalo pernah di masukan ke training nbc, masukan data baru
           if($hitung_jml_data < 1) {
-            $q = mysql_query("insert into tweet_nbc (id_tweet_bersih, label) values ('$id_tweet_bersih','$label')");
+            $q = mysql_query("insert into tweet_nbc (id, label) values ('$id_tweet_bersih','$label')");
           } else {
             //kalo udah pernah di masukan ke training nbc, update data
             mysql_query("update tweet_nbc set label='".$label."' 
-            where id_tweet_bersih='$id_tweet_bersih' ");
+            where id='$id_tweet_bersih' ");
           }
-           $tweets_baru[] = array('tweet'=>$post,'label'=>$label,'id_tweet_bersih'=>$id_tweet_bersih);
+          $tweets_baru[] = array('tweet'=>$post,'label'=>$label,'id'=>$id_tweet_bersih);
       }
+
+      // $_POST['tweet']=>[
+      //   "sopir ramah"
+      //   "balap tidaknyaman sopir tidak sopan"
+      //   "nyaman ramah sopir"
+      // ]
+
+      // $_POST['id_tweet_bersih']=>[2,3,9]
+      // $_POST['label']=>[1,2,1]
+
+
 
       //echo "<pre>";
       //print_r($tweets_baru);
@@ -99,17 +109,12 @@
       }
 
       $alldata_testing = array();
-
       foreach($tweets_baru as $tw){
         $alldata_testing[] = array('label'=>$tw['label'],
             "text" => explode(" ", $tw['tweet']) ,
-            "id_tweet_bersih" => $tw['id_tweet_bersih']
+            "id_tweet_bersih" => $tw['id']
           );
       }
-
-/*      echo "<pre>";
-      print_r($data_testing);
-      exit;*/
 ?>
 
         <?php
@@ -123,25 +128,22 @@
             $no=1;
             $benar = 0;
             
-            //ddd($prior[2]);
+            // d($prior[2]);
             // [1: pujian, 2: keluhan, 3: follow, 4: unknown]
             foreach($alldata_testing as $i=>$data_testing) {
+                
                 $score[$i]=array(1=>$prior[1], // pujian
-                                 2=>$prior[2], // pujian
+                                 2=>$prior[2], // keluhan
                                  3=>$prior[3], // follow
-                                 4=>$prior[4]); // keluhan
-                // $score[$i]=array(1=>$prior[3]['prior'], // unknown
-                //                  2=>$prior[0]['prior'], // pujian
-                //                  3=>$prior[1]['prior'], // follow
-                //                  4=>$prior[2]['prior']); // keluhan
+                                 4=>$prior[4]); // unknown
                 $score[$i]['text'] = $data_testing['text'];
                 // print_r($data_testing['text']);
                 echo "Data test : ";
                 foreach($data_testing['text'] as $t){
                   echo "$t ";
                     foreach ($kataunik as $key=>$d) {
-                      if($d['kata']==$t){
-                        // d($d['kata'], $d['pKeluhan']);
+                      if($d['word']==$t){
+                        // d($d['word'], $d['pKeluhan']);
                         $score[$i][1] = $score[$i][1] * $d['pPujian'];
                         // d('nilai sebelum dikali', $score[$i][2]);
                         $score[$i][2] = $score[$i][2] * $d['pKeluhan'];
@@ -179,8 +181,11 @@
                   } 
 
                   if($kelas==$data_testing['label']) $benar++;
-                  mysql_query("update tweet_nbc set label_sistem='".$kelas."' 
-                     where id_tweet_bersih='".$data_testing['id_tweet_bersih']."' "); 
+
+                  mysql_query("update tweet_nbc set label_system='".$kelas."' 
+                     where id='".$data_testing['id_tweet_bersih']."' ");
+
+                   
 
                   echo "Hasil klasifikasi : $klasifikasi[$kelas] <br><br>";
             }
@@ -189,7 +194,7 @@
       <?php
 
       $total_data_testing = count($alldata_testing);
-      echo "<div class='alert alert-info'>Akurasi = ". (( $benar / $total_data_testing) * 100 ) . "%</div>"; 
+      echo "<div class='alert alert-info'>Akurasi = ". (( $benar/$total_data_testing) * 100 ) . "%</div>"; 
       
   }
 ?>

@@ -27,25 +27,21 @@
                  ->performRequest();
 
     $text_tweet_mention_json_decode = json_decode($text_tweet_mention);
-/*
-    echo "<pre>";
-    print_r($text_tweet_mention_json_decode->statuses[0]);
-  */  //exit;
+    
+    //d($text_tweet_mention_json_decode->statuses[0]);
  
     $tweet_baru = $text_tweet_mention_json_decode->statuses[0];
     $text_tweet = $tweet_baru->text;
     $id_tweet = $tweet_baru->id_str;
     $screen_name =  $tweet_baru->user->screen_name;
-    //echo $text_tweet;
-    //exit;
 
     //cek ada tweet gak
     if(isset($id_tweet)){
-      d($id_tweet);
-      $sql = mysql_query("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon IS NULL "); 
+      //d($id_tweet);
+      $sql = mysql_query("select id from tweets where id='$id_tweet' and id_tweetresponse IS NULL"); 
       $cek_tweet = mysql_num_rows($sql);
-      d("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon='NULL' ");
-      d($cek_tweet);
+      //d("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon='NULL' ");
+      //d($cek_tweet);
       //jika tidak ada tweet baru maka akan muncul alert info
       if($cek_tweet<1) {
         echo "<div class='alert alert-info' style='margin-top: 35px;'>Belum ada tweet baru</div>";
@@ -59,7 +55,7 @@
          if($tweet_bersih!=""){ //jika bukan RT
             //print_r($tweet_bersih);
 
-            ######1. nbc######
+            ######Naive Bayes Classifier######
             $tweets_baru = $tweet_bersih;
             $no=0; 
             //kata unik
@@ -76,14 +72,9 @@
              $prior = array();
              while($dprior = mysql_fetch_array($sql_prior)){
                 $prior[$dprior['class']] = $dprior['prior'];
-             }
-             
-            // ddd($prior[2]);        
+             }             
+    
             foreach($data_testing as $i=>$tt) {
-                // $score[$i]=array(1=>$prior[2]['prior'],
-                //                  2=>$prior[0]['prior'],
-                //                  3=>$prior[1]['prior'],
-                //                  4=>$prior[3]['prior']);
                 $score[$i]=array(1=>$prior[1], // prior pujian
                                  2=>$prior[2], // prior keluhan
                                  3=>$prior[3], // prior follow
@@ -92,8 +83,8 @@
                 $score[$i]['text'] = $tt['text'];
                 foreach($tt['text'] as $t){
                     foreach ($kataunik as $key=>$d) {
-                      if(isset($d['kata'])){
-                        if($d['kata']==$t){
+                      if(isset($d['word'])){
+                        if($d['word']==$t){
                            $score[$i][1] = $score[$i][1] * $d['pPujian'];
                            $score[$i][2] = $score[$i][2] * $d['pKeluhan'];
                            $score[$i][3] = $score[$i][3] * $d['pFollow'];
@@ -141,7 +132,7 @@
 
             if($kelas==2){
                 ######2. roc######
-                $kata_d['kata'] = explode(' ',strtolower($tweets_baru));
+                $kata_d['word'] = explode(' ',strtolower($tweets_baru));
                 //$kata_d['kelas'] = $label;
                 //$kata_d['id_tweet_nbc'] = 1;//$id_tweet_nbc; 
                 $cek = klasifikasi_rocchio($kata_d);
@@ -168,6 +159,8 @@
                 }           
                 
                 echo "<div class='alert alert-success' style='margin-top: 17px'>Tweet \"".$text_tweet."\" telah direspon</div>";
+                
+                
                 //kirim balasan
                 $url = 'https://api.twitter.com/1.1/statuses/update.json';
                 $requestMethod = 'POST';
@@ -182,17 +175,15 @@
                            ->performRequest();
                 $text_tweet_mention_json_decode = json_decode($text_tweet_mention);
                   
-                // echo "Tweet sudah di respon";
-                // echo "<pre>";
-                // print_r($text_tweet_mention_json_decode);
+                // d($text_tweet_mention_json_decode);
 
-                mysql_query("update tweets set label='$kelas',id_tweet_respon='$id_tweet_respon' 
-               where tweet_id='$id_tweet' ");  
+                mysql_query("update tweets set label='$kelas',id_tweetresponse='$id_tweet_respon' 
+                            where id='$id_tweet' ");  
 
             } else {
               // klo kelas 4 (unknown)
               mysql_query("update tweets set label='$kelas' 
-                where tweet_id='$id_tweet' ");              
+                where id='$id_tweet' ");              
             }
 
          }else{
@@ -203,20 +194,18 @@
 
       }else{
 
-          $sql = mysql_query("select tweet_id from tweets where tweet_id='$id_tweet' ");
+          $sql = mysql_query("select id from tweets where id='$id_tweet' ");
           $cek_tweet = mysql_num_rows($sql);
 
           if($cek_tweet<1){ 
-            //nambah tweet 
+            //Simpan tweet 
             $date=date_create($tweet_baru->created_at);
             $tweet_date = date_format($date,"Y/m/d H:i:s");
-            mysql_query("insert into tweets (tweet_id,tweet,username,tweet_date) 
+            mysql_query("insert into tweets (id,tweet,username,tweet_date) 
                 values ('".$tweet_baru->id_str."','".$tweet_baru->text."',
                     '".$tweet_baru->user->screen_name."','$tweet_date') ");
             $tweet_bersih=pre_processing($text_tweet);
           }
- 
-
       }
     }
 
@@ -224,13 +213,11 @@
 
      function klasifikasi_rocchio($kata_d=array()){ 
 
-       $sqllatih = mysql_query("select 
-                        tb.id id_tweet_bersih, tb.tweet, tr.label,
-                        tn.id id_tweet_nbc
-                    from tweet_bersih tb
-                    left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                    join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                    where tb.status_data='training' and tn.label='2'");
+       $sqllatih = mysql_query("select tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc
+                                from tweet_bersih tb left join tweet_nbc tn on tb.id=tn.id
+                                join tweet_rocchio tr on tn.id=tr.id
+                                where tb.data_status='training' and tn.label='2'"
+                              );
                     
       $N = mysql_num_rows($sqllatih);
 
@@ -241,16 +228,16 @@
       $TFIDF = array();
       $semua_kata = array();
       while($tfidf_data = mysql_fetch_array($sql_tfidf)){
-        $TF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']]  = $tfidf_data['tf'];
-        $IDF[$tfidf_data['kata']]= $tfidf_data['idf'];
-        $TFIDF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']] 
+        $TF[$tfidf_data['word']][$tfidf_data['kelas']][$tfidf_data['d']]  = $tfidf_data['tf'];
+        $IDF[$tfidf_data['word']]= $tfidf_data['idf'];
+        $TFIDF[$tfidf_data['word']][$tfidf_data['kelas']][$tfidf_data['d']] 
           = $tfidf_data['tf_idf']; 
 
-        if(!array_key_exists($tfidf_data['kata'], $semua_kata)) $semua_kata[$tfidf_data['kata']] = array();
+        if(!array_key_exists($tfidf_data['word'], $semua_kata)) $semua_kata[$tfidf_data['word']] = array();
       }
 
       // $semua_kata = array();
-      foreach ($kata_d['kata'] as $v1) {
+      foreach ($kata_d['word'] as $v1) {
           if(!array_key_exists($v1, $semua_kata)) $semua_kata[$v1] = array();
       }
       //semua kata
@@ -275,7 +262,7 @@
          //load semua dokumen
         $i=$N+1; 
         $TF[$key]['kelas_uji'][$i]=0;
-        foreach($kata_d['kata'] as $k){
+        foreach($kata_d['word'] as $k){
           if($key==$k){
               $TF[$key]['kelas_uji'][$i] ++; 
           }
@@ -365,9 +352,9 @@
       $CUuji = array(1=>0,0);
       while($c=mysql_fetch_array($sql_centroid)){
         //ngecek klo kata uji sudah ada di data training
-        if(array_key_exists($c['kata'], $Normalisasi_TFIDF )){
-          $CUuji[1] += pow($c['cUmum'] - $Normalisasi_TFIDF[$c['kata']]['kelas_uji'][$i]  , 2);
-          $CUuji[2] += pow($c['cSopir'] - $Normalisasi_TFIDF[$c['kata']]['kelas_uji'][$i] , 2);
+        if(array_key_exists($c['word'], $Normalisasi_TFIDF )){
+          $CUuji[1] += pow($c['cUmum'] - $Normalisasi_TFIDF[$c['word']]['kelas_uji'][$i]  , 2);
+          $CUuji[2] += pow($c['cSopir'] - $Normalisasi_TFIDF[$c['word']]['kelas_uji'][$i] , 2);
         }
       }
       //kata yg tidak ada di data training
@@ -403,5 +390,5 @@
     // }
     window.setTimeout(function(){
       location.reload(true);
-    }, 60000);
+    }, 600000);
 </script>

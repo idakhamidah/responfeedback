@@ -10,19 +10,18 @@
           <tr>
               <th>No</th>
               <th>Tweet</th>
-              <th>Tweet Bersih</th>
-              <th>Label manual</th>
-              <th>Label Sistem</th>
+              <th>Clean Tweet</th>
+              <th>Class</th>
+              <th>Class(System)</th>
           </tr>
           </thead>
           <tbody>
             <?php 
-              $sql = mysql_query("select 
-                                t1.tweet tweet_kotor, tb.id_tweet, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc, tr.label_sistem
-                                from tweets t1 left join tweet_bersih tb on t1.id=tb.id_tweet
-                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                                left join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                                where tb.status_data='testing' and tn.label='2'
+              $sql = mysql_query("select t1.tweet tweet_kotor, t1.id id_tweet_kotor, tb.id id_tweet_bersih, tb.tweet, tr.label, tn.id id_tweet_nbc
+                                from tweets t1 left join clean_tweet tb on t1.id=tb.id
+                                left join tweet_nbc tn on tb.id=tn.id
+                                left join tweet_rocchio tr on tn.id=tr.id
+                                where tb.data_status='testing' and tn.label='2'
                                 ");
             // $sql = mysql_query("SELECT tb.id, tb.tweet, tn.id id_tweet_nbc 
             //                     FROM tweet_bersih tb, tweet_nbc tn 
@@ -39,7 +38,7 @@
                         <td>$no</td>
                         <td>$d[tweet_kotor]
                           <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
-                          <input type='hidden' name='id_tweet[]' value='$d[id_tweet]' />
+                          <input type='hidden' name='id_tweet_kotor[]' value='$d[id_tweet_kotor]' />
                         </td>
                         <td>$d[tweet]
                           <input type='hidden' name='tweet[]' value='$d[tweet]' />
@@ -81,11 +80,12 @@
       $sqllatih = mysql_query("select 
                                 tb.id id_tweet_bersih, tb.tweet, tr.label,
                                 tn.id id_tweet_nbc
-                                from tweet_bersih tb
-                                left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                                join tweet_rocchio tr on tn.id=tr.id_tweet_nbc
-                                where tb.status_data='training' and tn.label='2'"
+                                from clean_tweet tb
+                                left join tweet_nbc tn on tb.id=tn.id
+                                join tweet_rocchio tr on tn.id=tr.id
+                                where tb.data_status='training' and tn.label='2'"
                               );
+
       $N = mysql_num_rows($sqllatih);
 
       //load tf, idf, tfidfp training
@@ -95,35 +95,35 @@
       $TFIDF = array();
       $semua_kata = array();
       while($tfidf_data = mysql_fetch_array($sql_tfidf)){
-        $TF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']]  = $tfidf_data['tf'];
-        $IDF[$tfidf_data['kata']]= $tfidf_data['idf'];
-        $TFIDF[$tfidf_data['kata']][$tfidf_data['kelas']][$tfidf_data['d']] 
+        $TF[$tfidf_data['word']][$tfidf_data['kelas']][$tfidf_data['d']]  = $tfidf_data['tf'];
+        $IDF[$tfidf_data['word']]= $tfidf_data['idf'];
+        $TFIDF[$tfidf_data['word']][$tfidf_data['kelas']][$tfidf_data['d']] 
           = $tfidf_data['tf_idf']; 
 
-        if(!array_key_exists($tfidf_data['kata'], $semua_kata)) $semua_kata[$tfidf_data['kata']] = array();
+        if(!array_key_exists($tfidf_data['word'], $semua_kata)) $semua_kata[$tfidf_data['word']] = array();
       } 
 
       foreach ($_POST['tweet'] as $i => $post) {
         $id_tweet_nbc = $_POST['id_tweet_nbc'][$i];
         $label = $_POST['label'][$i];
         $sql_k = mysql_query("select * from tweet_rocchio 
-            where id_tweet_nbc='$id_tweet_nbc'");
+            where id='$id_tweet_nbc'");
 
         $hitung_jml_data = mysql_num_rows($sql_k);
         if($hitung_jml_data < 1){
           mysql_query("insert into tweet_rocchio
-             values ('','".$id_tweet_nbc."','".$label."','')");
+             values ('".$id_tweet_nbc."','".$label."','')");
         }else{
             mysql_query("update tweet_rocchio
-             set label='".$label."' where id_tweet_nbc='$id_tweet_nbc' ");
+             set label='".$label."' where id='$id_tweet_nbc' ");
         }
 
         echo "<br>";
         echo "Data testing = "; print_r ($post);  
 
-        $kata_d['kata'] = explode(' ',strtolower($post));
+        $kata_d['word'] = explode(' ',strtolower($post));
         $kata_d['kelas'] = $label;
-        $kata_d['id_tweet_nbc'] = $id_tweet_nbc;
+        $kata_d['id'] = $id_tweet_nbc;
         
         $cek = klasifikasi_rocchio($kata_d,$N,$semua_kata, $TF, $IDF, $TFIDF);
         // ddd($cek, $kata_d);
@@ -133,8 +133,8 @@
         }
         $jml_document_c[$label] ++; 
         mysql_query("update tweet_rocchio
-           set label_sistem='".$cek."' where 
-           id_tweet_nbc='".$id_tweet_nbc."' "); 
+           set label_system='".$cek."' where 
+           id='".$id_tweet_nbc."' "); 
 
       } 
       $akurasi = @ ( ($benar / count($_POST['tweet'])) * 100 ); 
@@ -145,7 +145,7 @@
   }
   
   function klasifikasi_rocchio($kata_d=array(),$N, $semua_kata, $TF, $IDF, $TFIDF){  
-      foreach ($kata_d['kata'] as $v1) { 
+      foreach ($kata_d['word'] as $v1) { 
         if(!array_key_exists($v1, $semua_kata)) $semua_kata[$v1] = array();
       }
 
@@ -155,7 +155,7 @@
          //load semua dokumen
         $i=$N+1; 
         $TF[$key]['kelas_uji'][$i]=0;
-        foreach($kata_d['kata'] as $k){
+        foreach($kata_d['word'] as $k){
           if($key==$k){
               $TF[$key]['kelas_uji'][$i] ++; 
           }
@@ -197,15 +197,27 @@
           = $TFIDF[$key]['kelas_uji'][$i] / $Panjang_Vektor[$i]; 
       }
 
-      // ddd($Normalisasi_TFIDF); 
+      // d($Normalisasi_TFIDF); 
+      // Normalisasi_TFIDF = [
+      //   taksi = [
+      //     1 =[
+      //       1=0,89899
+      //       2=0
+      //     ]
+      //     2 =[
+      //       3=0,89899 ----> 3 dan 4 adalah id tweet rocchio
+      //       4=0
+      //     ]
+      //   ]
+      // ]
        
       $sql_centroid = mysql_query("select * from rocchio_centroid");
       $CUuji = array(1=>0,0);
       while($c=mysql_fetch_array($sql_centroid)){
         //ngecek klo kata uji sudah ada di data training
-        if(array_key_exists($c['kata'], $Normalisasi_TFIDF )){
-          $CUuji[1] += pow($c['cUmum'] - $Normalisasi_TFIDF[$c['kata']]['kelas_uji'][$i]  , 2);
-          $CUuji[2] += pow($c['cSopir'] - $Normalisasi_TFIDF[$c['kata']]['kelas_uji'][$i] , 2);
+        if(array_key_exists($c['word'], $Normalisasi_TFIDF )){
+          $CUuji[1] += pow($c['cUmum'] - $Normalisasi_TFIDF[$c['word']]['kelas_uji'][$i] , 2);
+          $CUuji[2] += pow($c['cSopir'] - $Normalisasi_TFIDF[$c['word']]['kelas_uji'][$i] , 2);
         }
       }
 

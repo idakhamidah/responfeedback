@@ -1,4 +1,4 @@
-<h3><i class="fa fa-angle-right"></i> Clean Tweets</h3>
+<!--<h3><i class="fa fa-angle-right"></i> Clean Tweets</h3>-->
 <div class="row">  
   <div class="col-sm-12">
      <div class="showback">
@@ -7,15 +7,15 @@
             <table id="tabel1_search" class="ui celled table" cellspacing="0" width="100%" >  
                 <thead>
                 <tr>
-                    <th>No</th>
-                    <th>Tweet</th>
-                    <th>Status Data</th>
+                  <th>No</th>
+                  <th>Tweet</th>
+                  <th>Data Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 <?php
  
-                $sql = mysql_query("select id,tweet, status_data from tweet_bersih");
+                $sql = mysql_query("select id,tweet, data_status from clean_tweet");
                 $no=1;
                 $tweets = array();
                 $status = array(1=>"training", "testing");
@@ -26,9 +26,9 @@
                             <input type='hidden' name='id[]' value='$d[id]' />
                           </td>
                           <td>
-                            <select name='status_data[]'>";
+                            <select name='data_status[]'>";
                               foreach ($status as $i=>$k){
-                                if($status[$i]==$d['status_data'])
+                                if($status[$i]==$d['data_status'])
                                   echo "<option selected value='$status[$i]'>$status[$i]</option>";
                                 else
                                   echo "<option value='$status[$i]'>$status[$i]</option>";
@@ -42,8 +42,8 @@
                 }
                 ?>
                 </tbody>
-            </table>
-            <input type="submit" name="btnSubmit" class="btn btn_primary" value="Submit" />
+            </table><br>
+            <input type="submit" name="btnSubmit" class="btn btn-theme" value="Submit" />
           </form> 
     </div>
      
@@ -54,9 +54,9 @@
 <?php 
 
   if(isset($_POST['btnSubmit'])){    
-      $status_data = $_POST['status_data'];
+      $data_status = $_POST['data_status'];
       foreach($_POST['id'] as $i=>$id){
-         mysql_query("update tweet_bersih set status_data='$status_data[$i]' 
+         mysql_query("update clean_tweet set data_status='$data_status[$i]' 
           where id='$id'");  
       }
       exit("<script>alert('The Data Successfully Created');location='?page=$_GET[page]'</script>");

@@ -1,29 +1,26 @@
 <?php // require '/Lib/kint/Kint.class.php'; ?>
 
-<h3><i class="fa fa-angle-right"></i> Training NBC</h3>
+<!--<h3><i class="fa fa-angle-right"></i> Training NBC</h3>-->
 <div class="row">  
   <div class="col-sm-12">
     <div class="showback">
-      <h4><i class="fa fa-angle-right"></i> Tweet Bersih</h4>
+      <h4><i class="fa fa-angle-right"></i>Training Naive Bayes Classifier</h4>
         <form action="" method='post'>
           <table id="tabel1_search" class="ui celled table" cellspacing="0" width="100%" >  
             <thead>
             <tr>
               <th>No</th>
               <th>Tweet</th>
-              <th>Tweet Bersih</th>
+              <th>Clean Tweet</th>
               <!-- <th>Frekuensi Kata</th> -->
-              <th>Label</th>
+              <th>Class</th>
             </tr>
             </thead>
             <tbody>
               <?php
-              $sql = mysql_query("select 
-                                  tb.id id_tweet_bersih, t.tweet as tweet, tb.tweet as tweet_bersih, tn.label
-                                  from tweet_bersih tb
-                                  join tweets t on t.id=tb.id_tweet
-                                  left join tweet_nbc tn on tb.id=tn.id_tweet_bersih
-                                  where tb.status_data='training'"
+              $sql = mysql_query("select tb.id id_tweet_bersih, t.tweet as tweet, tb.tweet as tweet_bersih, tn.label 
+                                  from clean_tweet tb join tweets t on t.id=tb.id left join tweet_nbc tn on tb.id=tn.id 
+                                  where tb.data_status='training'"
                                 );
               $no=1;
               $tweets = array();
@@ -74,7 +71,8 @@
             ?>
             </tbody>
         </table>
-        <input type="submit" name="btnTraining" class="btn btn_primary" value="Training" />
+        <br>
+        <input type="submit" name="btnTraining" class="btn btn-theme" value="Training" />
       </form> 
     </div><!--/showback-->
   </div><!--/col-sm-12-->  
@@ -92,16 +90,16 @@
     foreach($_POST['tweet'] as $i=>$post) { 
       $id_tweet_bersih = $_POST['id_tweet_bersih'][$i];
       $label = $_POST['label'][$i];
-      $sql_k = mysql_query("select * from tweet_nbc where id_tweet_bersih='$id_tweet_bersih'");
+      $sql_k = mysql_query("select * from tweet_nbc where id='$id_tweet_bersih'");
       $hitung_jml_data = mysql_num_rows($sql_k);
       
       //kalo blm pernah dimasukan ke training nbc, masukan data baru
       if($hitung_jml_data < 1)
-        mysql_query("insert into tweet_nbc values ('','$id_tweet_bersih','".$label."','')");
+        mysql_query("insert into tweet_nbc values ('$id_tweet_bersih','".$label."','')");
       //kalo udah pernah dimasukan ke training nbc, update data
       else
         mysql_query("update tweet_nbc set label='".$label."' 
-        where id_tweet_bersih='$id_tweet_bersih' ");
+        where id='$id_tweet_bersih' ");
         
       //set $Nc
       if(array_key_exists(trim($label), $Nc)) $Nc[trim($label)]++;
@@ -139,8 +137,24 @@
           }
         }
       }
-      $Tct[$key]=$fs_token;
+      $Tct[$key]=$fs_token;      
     }
+
+    //$text_Concat = [
+//    '2'= " taksi tidakrawat ....." (Gabungan kata untuk keseluruhan tweet)
+//    '4'= "ada lowongan "     
+    //]
+
+    //$Tct => [
+        //   "2" => [
+        //     taksi => 1
+        //     tidakrawat => 3
+        //   ]
+        //   "4" => [
+        //     "ada" => 4
+        //     "lowongan" => 5
+        //   ]
+    // ]
 
    $no=0;
    $kataunik = mysql_query("select * from nbc_kataunik");
@@ -167,11 +181,11 @@
               $no++;
               echo "<tr>
                         <td>$no</td>
-                        <td>$d[kata]</td>
-                        <td>".jml_kemunculan_kata_perkelas($Tct,1,$d['kata'])."</td>
-                        <td>".jml_kemunculan_kata_perkelas($Tct,2,$d['kata'])."</td>
-                        <td>".jml_kemunculan_kata_perkelas($Tct,3,$d['kata'])."</td>
-                        <td>".jml_kemunculan_kata_perkelas($Tct,4,$d['kata'])."</td>
+                        <td>$d[word]</td>
+                        <td>".jml_kemunculan_kata_perkelas($Tct,1,$d['word'])."</td>
+                        <td>".jml_kemunculan_kata_perkelas($Tct,2,$d['word'])."</td>
+                        <td>".jml_kemunculan_kata_perkelas($Tct,3,$d['word'])."</td>
+                        <td>".jml_kemunculan_kata_perkelas($Tct,4,$d['word'])."</td>
                     </tr>";
             }
           ?>
@@ -236,20 +250,20 @@
               $no++;
               echo"<tr>
                       <td>$no</td>
-                      <td>$d[kata]</td>
-                      <td>".number_format(condprob($Tct,1,$d['kata'],$B), 14, ".",",")."</td>
-                      <td>".number_format(condprob($Tct,2,$d['kata'],$B), 14, ".",",")."</td>
-                      <td>".number_format(condprob($Tct,3,$d['kata'],$B), 14, ".",",")."</td>
-                      <td>".number_format(condprob($Tct,4,$d['kata'],$B), 14, ".",",")."</td>
+                      <td>$d[word]</td>
+                      <td>".number_format(condprob($Tct,1,$d['word'],$B), 14, ".",",")."</td>
+                      <td>".number_format(condprob($Tct,2,$d['word'],$B), 14, ".",",")."</td>
+                      <td>".number_format(condprob($Tct,3,$d['word'],$B), 14, ".",",")."</td>
+                      <td>".number_format(condprob($Tct,4,$d['word'],$B), 14, ".",",")."</td>
                     </tr>";  
 
                 //update Probabilitas
                 mysql_query("update nbc_kataunik set 
-                      pPujian ='".condprob($Tct,1,$d['kata'],$B)."',
-                      pKeluhan ='".condprob($Tct,2,$d['kata'],$B)."',
-                      pFollow ='".condprob($Tct,3,$d['kata'],$B)."',
-                      pUnknown ='".condprob($Tct,4,$d['kata'],$B)."'
-                      where id_kata='$d[id_kata]'
+                      pPujian ='".condprob($Tct,1,$d['word'],$B)."',
+                      pKeluhan ='".condprob($Tct,2,$d['word'],$B)."',
+                      pFollow ='".condprob($Tct,3,$d['word'],$B)."',
+                      pUnknown ='".condprob($Tct,4,$d['word'],$B)."'
+                      where id='$d[id]'
                 ");                    
             }
           ?>
@@ -267,7 +281,7 @@ function prior ($Nc,$N){
   mysql_query("TRUNCATE nbc_priorclass");
   foreach ($Nc as $c => $c_val) {
     $prior[$c]=$Nc[$c]/$N;
-    mysql_query("insert into nbc_priorclass values ('','$c','".number_format($prior[$c],14)."')");
+    mysql_query("insert into nbc_priorclass values ('$c','".number_format($prior[$c],14)."')");
   }
 }
 
@@ -290,3 +304,10 @@ function condprob($Tct,$c,$kata,$B){
   }
   return $condprob_tc;
 }
+
+// $Tct => [
+//        "2" => [
+//              taksi => 1,
+//              tidakrawat => 1  
+//        ]
+// ]
