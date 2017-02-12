@@ -332,7 +332,7 @@
       //   }
       // }
 
-      $sql_centroid = mysql_query("select * from rocchio_centroid");
+      $sql_centroid = mysql_query("select a.cUmum, a.cSopir, b.word as kata from rocchio_centroid a, rocchio_word b WHERE a.word = b.id");
       $CUuji = array(1=>0,0);
       while($c=mysql_fetch_array($sql_centroid)){
         //ngecek klo kata uji sudah ada di data training
