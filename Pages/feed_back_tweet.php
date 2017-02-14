@@ -29,9 +29,9 @@ switch($aksi){
 		                      // 	join tweet_bersih on tweet_bersih.id_tweet=tweets.id
 		                      // 	left join tweet_response on tweets.id_tweet_respon=tweet_response.id");
 		                    $sql = mysql_query("SELECT tweets.tweet tweet_kotor, 
-																						tweet_response.tweetresponse, tweet_response.label
+																						tweet_response.tweetresponse
 																						FROM tweets, tweet_response
-																						WHERE tweets.id_tweet_respon = tweet_response.id
+																						WHERE tweets.id_tweetresponse = tweet_response.id
 																						ORDER BY tweets.id DESC");
 		                      $no=1; 
 		                      while($d = mysql_fetch_array($sql)){
