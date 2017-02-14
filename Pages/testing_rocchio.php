@@ -89,7 +89,8 @@
       $N = mysql_num_rows($sqllatih);
 
       //load tf, idf, tfidfp training
-      $sql_tfidf = mysql_query("select * from rocchio_tfidf");
+      // $sql_tfidf = mysql_query("select * from rocchio_tfidf");
+      $sql_tfidf = mysql_query("select a.id, a.class, a.d, a.tf, a.idf, a.tf_idf, b.word from rocchio_tfidf a, rocchio_word b WHERE a.word = b.id");
       $TF = array();
       $IDF = array();
       $TFIDF = array();
@@ -211,7 +212,8 @@
       //   ]
       // ]
        
-      $sql_centroid = mysql_query("select * from rocchio_centroid");
+      // $sql_centroid = mysql_query("select * from rocchio_centroid");
+      $sql_centroid = mysql_query("select a.cUmum, a.cSopir, b.word from rocchio_centroid a, rocchio_word b WHERE a.word = b.id");
       $CUuji = array(1=>0,0);
       while($c=mysql_fetch_array($sql_centroid)){
         //ngecek klo kata uji sudah ada di data training
