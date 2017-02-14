@@ -266,6 +266,8 @@
     //simpan tf, idf, tfidf
         
     mysql_query("TRUNCATE `rocchio_tfidf`");
+    mysql_query("TRUNCATE `rocchio_word`");
+    $kata_id = array();
     foreach ($TF as $kata=>$kelas) {
       $idf = $IDF[$kata];
       foreach($kelas as $k1=>$d1){
@@ -275,8 +277,14 @@
           $d2 = $d2;
           $tf = $tf;
           $tfidf = $TFIDF[$kata][$k1][$d2]; 
-          mysql_query("insert into rocchio_tfidf values
-             ('','$kata','$kelas','$d2','$tf','$idf','$tfidf')");
+          $q1 = mysql_query("insert into rocchio_word SET word='$kata'");
+          if($q1):
+            $last_id = mysql_insert_id();
+            $kata_id[$kata] = $last_id;
+            // simpan data id tadi ke array, untuk query di rocchio_centroid
+            mysql_query("insert into rocchio_tfidf values
+             ('','$last_id','$kelas','$d2','$tf','$idf','$tfidf')");
+          endif;
         }
       }
     }
@@ -286,7 +294,12 @@
       //hapus data di tabel centroid 
       mysql_query("TRUNCATE `rocchio_centroid`");
       foreach($Centroid[1] as $kata=>$c1){
-        mysql_query("insert into rocchio_centroid (word,cUmum,cSopir) values ('$kata','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
+        // masukkan dulu katanya ke rocchio_word
+        $q1 = mysql_query("insert into rocchio_word SET word='$kata'");
+        if($q1):
+          $last_id = $kata_id[$kata];
+          mysql_query("insert into rocchio_centroid (word,cUmum,cSopir) values ('$last_id','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
+        endif;
       }
 
       ?>
@@ -308,7 +321,8 @@
           <tbody>
             <?php
 
-              $sqlcentroid = mysql_query("select * from rocchio_centroid");
+              // $sqlcentroid = mysql_query("select * from rocchio_centroid");
+              $sql_centroid = mysql_query("select a.cUmum, a.cSopir, b.word from rocchio_centroid a, rocchio_word b WHERE a.word = b.id");
               $no=1;
               while($dcentroid = mysql_fetch_array($sqlcentroid)){
                 echo "<tr>
