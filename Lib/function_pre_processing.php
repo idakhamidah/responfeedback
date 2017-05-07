@@ -129,7 +129,7 @@
 
   function wordReplacement($text=array()){
     foreach ($text as $k=>$v) {
-      $v =  mysql_escape_string($v); //omitCharacters($v, null);
+      $v =  mysql_real_escape_string($v); //omitCharacters($v, null);
       $sql = mysql_query("select rw.word, rw.vocab_id, v.word katadasar
                           from replace_words rw join vocabs v on v.id = rw.vocab_id  
                           where rw.word='$v'"

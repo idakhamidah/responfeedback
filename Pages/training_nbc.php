@@ -129,7 +129,7 @@
             $fs_token[$v1]=1;
             //simpan kata unik
             //nyari kata tertentu di tabel,
-            $sql_k = mysql_query("select * from nbc_kataunik where kata='$v1'");
+            $sql_k = mysql_query("select * from nbc_kataunik where word='$v1'");
             //hitung brp jml baris data yg di temukan, kalau 0, brrti katanya blm ada :p
             $hitung_jml_data = mysql_num_rows($sql_k);
             if($hitung_jml_data < 1)

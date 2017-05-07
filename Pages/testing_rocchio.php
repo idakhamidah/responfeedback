@@ -46,11 +46,23 @@
                         </td>
                         <td>
                           <select name='label[]'>";
+                          // foreach ($kelas as $i=>$k){
+                          //   if($i==$d['label'])
+                          //     echo "<option selected value='$i'>$kelas[$i]</option>";
+                          //   else
+                          //     echo "<option value='$i'>$kelas[$i]</option>";
+                          // }
+                          $dr_db =false;
                           foreach ($kelas as $i=>$k){
-                            if($i==$d['label'])
-                              echo "<option selected value='$i'>$kelas[$i]</option>";
-                            else
-                              echo "<option value='$i'>$kelas[$i]</option>";
+                              if($i==$d['label']){
+                                $dr_db = true;
+                                echo "<option selected value='$i'>$kelas[$i]</option>";
+                              }else{
+                                if($i==2 && $dr_db==false)
+                                  echo "<option selected value='$i'>$kelas[$i]</option>";
+                                else
+                                  echo "<option value='$i'>$kelas[$i]</option>";
+                              } 
                           }
                           echo "
                           </select>
@@ -90,7 +102,9 @@
 
       //load tf, idf, tfidfp training
       // $sql_tfidf = mysql_query("select * from rocchio_tfidf");
-      $sql_tfidf = mysql_query("select a.id, a.class, a.d, a.tf, a.idf, a.tf_idf, b.word from rocchio_tfidf a, rocchio_word b WHERE a.word = b.id");
+      $sql_tfidf = mysql_query("select a.id_tfidf, a.class as kelas, a.d, a.tf, 
+      a.idf, a.tf_idf, b.word from rocchio_tfidf a, rocchio_word b WHERE a.word = b.id");
+      // dd(mysql_error());
       $TF = array();
       $IDF = array();
       $TFIDF = array();

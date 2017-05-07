@@ -25,7 +25,7 @@ require_once('Pages/TwitterAPIExchange.php');
     $sql_cari = mysql_query("select tweet_id from tweetdownload where tweet_id='".$tweet_mention->id_str."' ");
     $count_cari = mysql_num_rows($sql_cari);
     if($count_cari < 1){
-      $tweet_baru += 1;
+      $tweet_baru += 1; 
       mysql_query("insert into tweetdownload (tweet_id,tweet,username,tweet_date) 
                   values ('".$tweet_mention->id_str."','".$tweet_mention->text."',
                           '".$tweet_mention->user->screen_name."','$tweet_date') ");

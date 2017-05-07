@@ -83,7 +83,7 @@
       $label = $_POST['label'][$i];
       // cek ditabel rocchio ada ga id nya
       $sql_k = mysql_query("select * from tweet_rocchio 
-                            where id_tweet_nbc='$id_tweet_nbc'");
+                            where id='$id_tweet_nbc'");
       $hitung_jml_data = mysql_num_rows($sql_k);
       // klo ga ada input ke tabel tweet_rocchio
       if($hitung_jml_data < 1){
@@ -94,7 +94,7 @@
       }else{
           $dt = mysql_fetch_array($sql_k); 
           mysql_query("update tweet_rocchio
-           set label='".$label."' where id_tweet_nbc='$id_tweet_nbc' ");
+           set label='".$label."' where id='$id_tweet_nbc' ");
       }
        $tweets[]=array('tweet'=>$post,'label'=>$label);
     } 
@@ -146,9 +146,9 @@
     //Perhitungan TF
     $TF = array();
     foreach($semua_kata as $key=>$val){//load semua dokumen        
-      $i=1;
+      $i=1; // untuk dokumen
       foreach ($kata_d as $value1) {
-        $TF[$key][$value1['kelas']][$i]=0;
+        $TF[$key][$value1['kelas']][$i]=0; // --> $TF['sopir'][kel_umum/sopir][1] = 0
         foreach($value1['word'] as $k){
           if($key==$k){
             $TF[$key][$value1['kelas']][$i] ++; 
@@ -186,11 +186,11 @@
     //   sopir: ?,
     //   ramah: ?
     // }
+    // dd($IDF);
 
 
     $TFIDF=array();
-    $Panjang_Vektor=array();
-    
+    $Panjang_Vektor=array();    
     foreach($semua_kata as $key=>$val){
         $i=1;
         foreach ($kata_d as $value1) {
@@ -202,13 +202,10 @@
            }
            $i++;    
         }
-    }
-
-    // tfidf^2    
+    }// dd($TFIDF);   // tfidf^2    
     foreach ($Panjang_Vektor as $key1=>$pv) {
        $Panjang_Vektor[$key1] = sqrt($pv);
-    }
-
+    }// dd($Panjang_Vektor);
 
     $Normalisasi_TFIDF = array();
     foreach($semua_kata as $key=>$val){
@@ -223,11 +220,7 @@
     $Centroid = array();
     $Kelas = array(1,2);
     
-    // echo "<pre>";
-    // print_r($kata_d );
-    // print_r($Normalisasi_TFIDF );
-    // exit;
-    //memanggil kelas yg isinya 1 dan 2.
+      //memanggil kelas yg isinya 1 dan 2.
     foreach($Kelas as $c){ 
       //mengambil nilai tfidf yg sudah dinormalisasi berdasarkan kata di setiap kelas pada document
       foreach ($Normalisasi_TFIDF as $kata => $kelas) {
@@ -254,7 +247,7 @@
     }
     // d($Normalisasi_TFIDF);
     // d($Sigma_normtfidf);
-    // d($Centroid);
+    // ddd($Centroid);
 
     
   //  echo "<pre>";
@@ -264,42 +257,41 @@
 
  //   exit;
     //simpan tf, idf, tfidf
+    // ddd($TF, $IDF);
         
     mysql_query("TRUNCATE `rocchio_tfidf`");
     mysql_query("TRUNCATE `rocchio_word`");
+    $kata_yg_sudah_diinput = [];
     $kata_id = array();
-    foreach ($TF as $kata=>$kelas) {
+    foreach ($TF as $kata=>$kelas) { // -> 'sopir' => [ 1: [], 2:[] ]
       $idf = $IDF[$kata];
-      foreach($kelas as $k1=>$d1){
-        foreach($d1 as $d2=>$tf){
+      foreach($kelas as $k1=>$d1){ // -> 1: [1:xxxx,2:xxxxx,3:xxxxxx]
+        foreach($d1 as $d2=>$tf){ // [1]
           $kata = $kata;
           $kelas = $k1;
           $d2 = $d2;
           $tf = $tf;
           $tfidf = $TFIDF[$kata][$k1][$d2]; 
-          $q1 = mysql_query("insert into rocchio_word SET word='$kata'");
-          if($q1):
-            $last_id = mysql_insert_id();
-            $kata_id[$kata] = $last_id;
-            // simpan data id tadi ke array, untuk query di rocchio_centroid
-            mysql_query("insert into rocchio_tfidf values
-             ('','$last_id','$kelas','$d2','$tf','$idf','$tfidf')");
-          endif;
+          if(!array_key_exists($kata, $kata_yg_sudah_diinput)) {
+            $q1 = mysql_query("insert into rocchio_word SET word='$kata'");
+            $kata_yg_sudah_diinput[$kata] = mysql_insert_id();
+          }
+
+          $kata_id[$kata] = $kata_yg_sudah_diinput[$kata];
+          // simpan data id tadi ke array, untuk query di rocchio_centroid
+          mysql_query("insert into rocchio_tfidf values
+            ('','$kata_yg_sudah_diinput[$kata]','$kelas','$d2','$tf','$idf','$tfidf')");
         }
       }
     }
 
     //exit;
 
-      //hapus data di tabel centroid 
-      mysql_query("TRUNCATE `rocchio_centroid`");
+      
+      mysql_query("TRUNCATE `rocchio_centroid`"); //hapus data di tabel centroid
       foreach($Centroid[1] as $kata=>$c1){
-        // masukkan dulu katanya ke rocchio_word
-        $q1 = mysql_query("insert into rocchio_word SET word='$kata'");
-        if($q1):
-          $last_id = $kata_id[$kata];
-          mysql_query("insert into rocchio_centroid (word,cUmum,cSopir) values ('$last_id','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
-        endif;
+        $last_id = $kata_id[$kata];
+        mysql_query("insert into rocchio_centroid (word,cUmum,cSopir) values ('$last_id','".$Centroid[1][$kata]."','".$Centroid[2][$kata]."') ");
       }
 
       ?>
@@ -324,7 +316,7 @@
               // $sqlcentroid = mysql_query("select * from rocchio_centroid");
               $sql_centroid = mysql_query("select a.cUmum, a.cSopir, b.word from rocchio_centroid a, rocchio_word b WHERE a.word = b.id");
               $no=1;
-              while($dcentroid = mysql_fetch_array($sqlcentroid)){
+              while($dcentroid = mysql_fetch_array($sql_centroid)){
                 echo "<tr>
                         <td>$no</td>
                         <td>$dcentroid[word]</td>

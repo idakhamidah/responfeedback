@@ -111,9 +111,9 @@
       $alldata_testing = array();
       foreach($tweets_baru as $tw){
         $alldata_testing[] = array('label'=>$tw['label'],
-            "text" => explode(" ", $tw['tweet']) ,
-            "id_tweet_bersih" => $tw['id']
-          );
+                                  "text" => explode(" ", $tw['tweet']) ,
+                                  "id_tweet_bersih" => $tw['id']
+                                  );
       }
 ?>
 
@@ -130,8 +130,7 @@
             
             // d($prior[2]);
             // [1: pujian, 2: keluhan, 3: follow, 4: unknown]
-            foreach($alldata_testing as $i=>$data_testing) {
-                
+            foreach($alldata_testing as $i=>$data_testing) {                
                 $score[$i]=array(1=>$prior[1], // pujian
                                  2=>$prior[2], // keluhan
                                  3=>$prior[3], // follow
@@ -145,10 +144,8 @@
                       if($d['word']==$t){
                         // d($d['word'], $d['pKeluhan']);
                         $score[$i][1] = $score[$i][1] * $d['pPujian'];
-                        // d('nilai sebelum dikali', $score[$i][2]);
-                        $score[$i][2] = $score[$i][2] * $d['pKeluhan'];
-                        // d('nilai setelah dikali', $score[$i][2]);
-                        $score[$i][3] = $score[$i][3] * $d['pFollow'];
+                        $score[$i][2] = $score[$i][2] * $d['pKeluhan'];// d('nilai sebelum dikali', $score[$i][2]);
+                        $score[$i][3] = $score[$i][3] * $d['pFollow'];// d('nilai setelah dikali', $score[$i][2]);
                         $score[$i][4] = $score[$i][4] * $d['pUnknown'];                         
                         $no++;
                       }
@@ -156,7 +153,7 @@
                   }
                   
                   echo "<br> Probabilitas Posterior kelas Pujian = ";
-                  print (number_format($score[$i][1],25,",","."));
+                  print (number_format($score[$i][1],25,",","."));//sprintf ('%e',$score[$i][1]);
                   echo "<br> Probabilitas Posterior kelas Keluhan = ";
                   print (number_format($score[$i][2],25,",","."));
                   echo "<br> Probabilitas Posterior kelas Follow = ";
@@ -184,8 +181,6 @@
 
                   mysql_query("update tweet_nbc set label_system='".$kelas."' 
                      where id='".$data_testing['id_tweet_bersih']."' ");
-
-                   
 
                   echo "Hasil klasifikasi : $klasifikasi[$kelas] <br><br>";
             }

@@ -28,7 +28,7 @@ switch($aksi){
 		                      //   from tweets 
 		                      // 	join tweet_bersih on tweet_bersih.id_tweet=tweets.id
 		                      // 	left join tweet_response on tweets.id_tweet_respon=tweet_response.id");
-		                    $sql = mysql_query("SELECT tweets.tweet tweet_kotor, 
+		                    $sql = mysql_query("SELECT tweets.tweet tweet_kotor, tweets.username username,
 																						tweet_response.tweetresponse
 																						FROM tweets, tweet_response
 																						WHERE tweets.id_tweetresponse = tweet_response.id
@@ -38,7 +38,7 @@ switch($aksi){
 		                        echo "<tr>
 		                                <td>$no</td>
 		                                <td>$d[tweet_kotor]</td>
-		                                <td>$d[tweetresponse]</td> 
+		                                <td>@$d[username] $d[tweetresponse]</td> 
 		                              </tr>"; 
 		                        $no++;
 		                      } 

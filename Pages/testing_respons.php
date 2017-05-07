@@ -1,53 +1,96 @@
 <?php 
-  require_once('Pages/TwitterAPIExchange.php');
-  include "Lib/function_pre_processing.php";
-  require_once "Lib/kint/Kint.class.php";
+require "Lib/kint/Kint.class.php"; 
+include "Lib/function_pre_processing.php";
+?>
 
-  #ambil data tweet
-   // $settings = array(
-   //      'oauth_access_token' => "558263780-j6HbHcOcbcfgmejhTOLRzktRKlIsFGAQhtBbDCiD",
-   //      'oauth_access_token_secret' => "o8a83KLXNb7EqLnVwNs27Fn9guASl2JcKLMFcqxysOBbv",
-   //      'consumer_key' => "QuzHMuZYkF4cpRJHW5KkCf8VB",
-   //      'consumer_secret' => "KpMSzgDzv0Jl0sHjUMtXDe3nH30Gz5LOHUs7GytlxTdVBxWxcj"
-   // );
-   $settings = array(
-        'oauth_access_token' => "790400892226772992-om8f2iIaaK2s1dQOzmR48tJnZP7mXKT",
-        'oauth_access_token_secret' => "5HKmWLc46s4GtSHRCM2lKektsmLrMnVQ0ZK4LQcQ4eknz",
-        'consumer_key' => "37r2vH4pNZJzOW16NONsw3p9a",
-        'consumer_secret' => "CmAFWMmXj6rhBph94DTneaSafNGkwiYegu6ZH6JJmjxEj8vB1a"
-    );
-   
-    $url = 'https://api.twitter.com/1.1/search/tweets.json';
-    $requestMethod = 'GET';
-    $getfield = '?q=%40Express_Group&result_type=mixed&count=1000';
+<!--<h3><i class="fa fa-angle-right"></i> Testing NBC</h3>-->
+<div class="row">
+ <div class="col-sm-12">
+    <div class="showback">
+      <h4><i class="fa fa-angle-right"></i> Testing Respons</h4>
+      <form action="" method="post">
+        <table id="tabel1" class="display" cellspacing="0" width="100%" >
+            <thead>
+            <tr>
+                <th>No</th>
+                <th>Tweet</th>
+                <th>Clean Tweet</th>
+                <th>Class</th>
+                <th>Class (System)</th>
+            </tr>
+            </thead>
+            <tbody>
+              <?php
+              $sql = mysql_query("select t.tweet tweet_kotor, tb.id id_tweet_kotor, tb.id id_tweet_bersih, tb.tweet, tn.label, tn.label_system
+                                  from tweets t left join clean_tweet tb on t.id=tb.id
+                                  left join tweet_nbc tn on tb.id=tn.id
+                                  where tb.data_status='testing'"
+                                );
+              $no=1;
+              $tweets = array();
+              $kelas = array("1"=>"Pujian", "2"=>"Keluhan", "3"=>"Follow", "4"=>"Unknown");
+              while($d = mysql_fetch_array($sql)){
+                echo "<tr>
+                        <td>$no</td>
+                        <td>$d[tweet_kotor]
+                          <input type='hidden' name='tweet_kotor[]' value='$d[tweet_kotor]' />
+                          <input type='hidden' name='id_tweet_kotor[]' value='$d[id_tweet_kotor]' />
+                        </td>
+                        <td>$d[tweet]
+                          <input type='hidden' name='id_tweet_bersih[]' value='$d[id_tweet_bersih]' />
+                          <input type='hidden' name='tweet[]' value='$d[tweet]' />
+                        </td>
+                        <td>
+                          <select name=\"label[]\">";
+                            $dr_db = true;
+                            foreach ($kelas as $i=>$k){
+                              if($i==$d['label']){
+                                $dr_db = false;
+                                echo "<option selected value='$i'>$kelas[$i]</option>";
+                              }else{
+                                if($i==2 && $dr_db==true)
+                                  echo "<option selected value='$i'>$kelas[$i]</option>";
+                                else
+                                  echo "<option value='$i'>$kelas[$i]</option>";
+                              } 
+                            }
+                          echo "
+                          </select>
+                        </td>
+                        <td>".(($d['label_system']) ? $kelas[$d['label_system']] : '')."</td>
+                      </tr>";
+                      $tweets[]=$d;
+                $no++;
+              }
+              ?>
+              </tbody>
+          </table><br>  
+      <input type="submit" name="btnTesting" class="btn btn-theme" value="Testing" />
+      </form>
+    </div><!--/content-panel -->
+  </div><!-- /col-md-12 -->
+</div><!-- /row -->
 
-    $twitter = new TwitterAPIExchange($settings);
-    $text_tweet_mention = $twitter->setGetfield($getfield)
-                 ->buildOauth($url, $requestMethod)
-                 ->performRequest();
+<?php
+  if(isset($_POST['btnTesting'])){
+      $tweets_baru =array();
 
-    $text_tweet_mention_json_decode = json_decode($text_tweet_mention);
-    
-    //d($text_tweet_mention_json_decode->statuses[0]);
- 
-    $tweet_baru = $text_tweet_mention_json_decode->statuses[0];
-    $text_tweet = $tweet_baru->text;
-    $id_tweet = $tweet_baru->id_str;
-    $screen_name =  $tweet_baru->user->screen_name;
-
-    //cek ada tweet gak
-    if(isset($id_tweet)){
-      //d($id_tweet);
-      $sql = mysql_query("select id from tweets where id='$id_tweet' and id_tweetresponse IS NULL"); 
-      $cek_tweet = mysql_num_rows($sql);
-      //d("select tweet_id from tweets where tweet_id='$id_tweet' and id_tweet_respon='NULL' ");
-      //d($cek_tweet);
-      //jika tidak ada tweet baru maka akan muncul alert info
-      if($cek_tweet<1) {
-        echo "<div class='alert alert-info' style='margin-top: 35px;'>Belum ada tweet baru</div>";
+      foreach($_POST['tweet'] as $i=>$post) { 
+          $id_tweet_bersih = $_POST['id_tweet_bersih'][$i];
+          $label = $_POST['label'][$i];
+          $sql_k = mysql_query("select * from tweet_nbc where id='$id_tweet_bersih'");
+          $hitung_jml_data = mysql_num_rows($sql_k);
+          //kalo blm pernah di masukan ke training nbc, masukan data baru
+          if($hitung_jml_data < 1) {
+            $q = mysql_query("insert into tweet_nbc (id, label) values ('$id_tweet_bersih','$label')");
+          } else {
+            //kalo udah pernah di masukan ke training nbc, update data
+            mysql_query("update tweet_nbc set label='".$label."' 
+            where id='$id_tweet_bersih' ");
+          }
+          $tweets_baru[] = array('tweet'=>$post,'label'=>$label,'id'=>$id_tweet_bersih);
       }
 
-      //jika ada tweet baru
       if($cek_tweet>0){
          $tweet_bersih=pre_processing(array('tweet'=>$text_tweet)); //preprocessing tweet
 
@@ -224,7 +267,7 @@
 
       //load tf, idf, tfidfp training
       // $sql_tfidf = mysql_query("select * from rocchio_tfidf");
-      $sql_tfidf = mysql_query("select a.id_tfidf, a.class as kelas, a.d, a.tf, a.idf, a.tf_idf, b.word from rocchio_tfidf a, rocchio_word b WHERE a.word = b.id");
+      $sql_tfidf = mysql_query("select a.id, a.class as kelas, a.d, a.tf, a.idf, a.tf_idf, b.word from rocchio_tfidf a, rocchio_word b WHERE a.word = b.id");
       $TF = array();
       $IDF = array();
       $TFIDF = array();
@@ -384,17 +427,4 @@
     }
 ?>
 
-
-<script>
-    // StartRefresh();
-    // function StartRefresh(){
-    //   window.setTimeout(StartRefresh,360000);
-    //     location.reload(true);
-    // }
-    window.setTimeout(function(){
-      location.reload(true);
-    }, minuteToMilisecond(5)); 
-    function minuteToMilisecond(menit){
-      return menit*60*1000;
-    }
-</script>
+?>

@@ -4,9 +4,9 @@ if(!isset($_SESSION['username'])){
    exit("<script>alert('Silahkan login');location='index.php'</script>");
 }
 
-ini_set('display_errors', 0); //untuk hilangin error edit 0
-ini_set('display_startup_errors', 0); //untuk hilangin error edit 0
-//error_reporting(E_ALL); //untuk hilangin error di komentarin
+ini_set('display_errors', 1); //untuk hilangin error edit 0
+ini_set('display_startup_errors', 1); //untuk hilangin error edit 0
+error_reporting(E_ALL); //untuk hilangin error di komentarin
 
 ?>
 <!DOCTYPE html>

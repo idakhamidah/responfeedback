@@ -2379,3 +2379,7 @@ label {
  
 .scrollbar-inner > .scroll-element.scroll-x.scroll-scrolly_visible .scroll-element_size { left: -12px; }
 .scrollbar-inner > .scroll-element.scroll-y.scroll-scrollx_visible .scroll-element_size { top: -12px; }
+
+
+.display2 { width: 100%; border-collapse: collapse; background: #FFF; }
+.display2 td, .display2 th { padding: 5px 10px; border: 1px solid #ddd; }
